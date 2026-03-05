@@ -1,0 +1,1793 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>FinSight — Interactive Storyboard (Proof of Concept)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a33;
+      --panel2:#0f1730;
+      --text:#e9eefc;
+      --muted:#a9b4d6;
+      --brand:#7c5cff;
+      --brand2:#36d6ff;
+      --ok:#2bd576;
+      --warn:#ffb020;
+      --bad:#ff5a7a;
+      --stroke:rgba(255,255,255,.10);
+      --shadow: 0 18px 40px rgba(0,0,0,.35);
+      --radius:18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1000px 600px at 20% 0%, rgba(124,92,255,.25), transparent 60%),
+                  radial-gradient(900px 500px at 90% 10%, rgba(54,214,255,.18), transparent 55%),
+                  radial-gradient(1000px 600px at 40% 110%, rgba(43,213,118,.12), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      overflow:hidden;
+    }
+    a{color:inherit}
+    .app{
+      display:grid;
+      grid-template-columns: 300px 1fr;
+      height:100%;
+    }
+    .sidebar{
+      padding:18px 16px;
+      border-right:1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+      overflow:auto;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      padding:10px 10px 16px;
+    }
+    .logo{
+      width:34px; height:34px; border-radius:12px;
+      background: conic-gradient(from 210deg, var(--brand), var(--brand2), var(--ok), var(--brand));
+      box-shadow: 0 10px 25px rgba(124,92,255,.25);
+    }
+    .brand h1{font-size:16px; margin:0; letter-spacing:.2px}
+    .brand p{margin:2px 0 0; color:var(--muted); font-size:12px}
+    .nav{
+      margin-top:8px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .nav button{
+      width:100%;
+      text-align:left;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:12px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      transition:.16s ease;
+      display:flex; align-items:center; gap:10px;
+    }
+    .nav button:hover{transform: translateY(-1px); background: rgba(255,255,255,.05)}
+    .nav button.active{
+      background: linear-gradient(180deg, rgba(124,92,255,.22), rgba(124,92,255,.10));
+      border-color: rgba(124,92,255,.45);
+      box-shadow: 0 10px 28px rgba(124,92,255,.18);
+    }
+    .pill{
+      margin-left:auto;
+      font-size:11px;
+      color:var(--muted);
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.12);
+      font-family: var(--mono);
+    }
+    .hint{
+      margin-top:14px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:14px;
+      padding:12px 12px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .hint b{color:var(--text)}
+    .main{
+      display:flex; flex-direction:column;
+      height:100%;
+      overflow:hidden;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 18px;
+      border-bottom:1px solid var(--stroke);
+      background: rgba(15,23,48,.55);
+      backdrop-filter: blur(10px);
+    }
+    .crumbs{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      color:var(--muted); font-size:12px;
+    }
+    .crumbs span{opacity:.85}
+    .crumbs .dot{opacity:.4}
+    .actions{display:flex; gap:10px; align-items:center}
+    .chip{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.03);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      display:flex; align-items:center; gap:8px;
+    }
+    .chip .lock{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--ok);
+      box-shadow: 0 0 0 4px rgba(43,213,118,.15);
+    }
+    .btn{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      transition:.16s ease;
+      font-weight:600;
+      font-size:13px;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.07)}
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(124,92,255,.95), rgba(124,92,255,.70));
+      border-color: rgba(124,92,255,.75);
+      box-shadow: 0 16px 34px rgba(124,92,255,.25);
+    }
+    .btn.ghost{
+      background: transparent;
+    }
+    .content{
+      padding:18px;
+      overflow:auto;
+    }
+    .screen{
+      display:none;
+      animation: fade .18s ease-out;
+    }
+    .screen.active{display:block}
+    @keyframes fade {from{opacity:.2; transform: translateY(6px)} to{opacity:1; transform:none}}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+    }
+    .card{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.03);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:16px;
+    }
+    .card h2{margin:0 0 6px; font-size:16px}
+    .card p{margin:0; color:var(--muted); line-height:1.5; font-size:13px}
+    .hero{
+      padding:18px;
+      border-radius: var(--radius);
+      border:1px solid rgba(124,92,255,.35);
+      background: radial-gradient(900px 380px at 10% 0%, rgba(124,92,255,.22), transparent 62%),
+                  radial-gradient(700px 340px at 90% 10%, rgba(54,214,255,.16), transparent 60%),
+                  rgba(255,255,255,.03);
+      box-shadow: var(--shadow);
+    }
+    .hero h2{margin:0 0 8px; font-size:18px}
+    .hero .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    .kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:12px}
+    .kpi{
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.12);
+      border-radius: 16px;
+      padding:12px;
+    }
+    .kpi .label{color:var(--muted); font-size:12px}
+    .kpi .value{font-weight:800; font-size:18px; margin-top:4px}
+    .kpi .sub{color:var(--muted); font-size:11px; margin-top:2px}
+    .twoCol{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+    .list{margin-top:10px; display:flex; flex-direction:column; gap:8px}
+    .item{
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.10);
+      border-radius: 16px;
+      padding:10px 12px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .tag{
+      font-size:11px;
+      color:var(--muted);
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.02);
+      margin-left:auto;
+      font-family: var(--mono);
+    }
+    .badge{
+      width:10px; height:10px; border-radius:999px;
+      background: var(--brand2);
+      box-shadow: 0 0 0 4px rgba(54,214,255,.12);
+      flex: 0 0 auto;
+    }
+    .badge.ok{background: var(--ok); box-shadow: 0 0 0 4px rgba(43,213,118,.12)}
+    .badge.warn{background: var(--warn); box-shadow: 0 0 0 4px rgba(255,176,32,.14)}
+    .badge.bad{background: var(--bad); box-shadow: 0 0 0 4px rgba(255,90,122,.14)}
+    .form{
+      display:flex; flex-direction:column; gap:10px; margin-top:12px;
+    }
+    label{font-size:12px; color:var(--muted)}
+    input, select, textarea{
+      width:100%;
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.12);
+      color:var(--text);
+      outline:none;
+      font-size:13px;
+    }
+    textarea{min-height:88px; resize:vertical}
+    .row2{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    .footerRow{display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:12px; flex-wrap:wrap}
+    .small{font-size:12px; color:var(--muted); line-height:1.45}
+    .muted{color:var(--muted)}
+    .mono{font-family: var(--mono)}
+    .toast{
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      width: min(360px, calc(100% - 32px));
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(18,26,51,.85);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      padding: 12px 12px;
+      display:none;
+      z-index: 50;
+    }
+    .toast.show{display:block; animation: pop .2s ease-out}
+    @keyframes pop{from{transform: translateY(8px); opacity:.2} to{transform:none; opacity:1}}
+    .toast .title{font-weight:800; font-size:13px}
+    .toast .msg{color:var(--muted); font-size:12px; margin-top:4px; line-height:1.4}
+    .modalBackdrop{
+      position: fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center; justify-content:center;
+      padding: 18px;
+      z-index: 60;
+    }
+    .modalBackdrop.show{display:flex}
+    .modal{
+      width:min(820px, 100%);
+      border-radius: 18px;
+      border:1px solid var(--stroke);
+      background: rgba(18,26,51,.92);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .modal header{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .modal header h3{margin:0; font-size:16px}
+    .modal header p{margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.4}
+    .closeX{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      width:36px; height:36px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight:900;
+    }
+    .steps{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .step{
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.12);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .step .n{
+      display:inline-flex;
+      width:22px; height:22px; border-radius: 8px;
+      align-items:center; justify-content:center;
+      background: rgba(124,92,255,.22);
+      border:1px solid rgba(124,92,255,.45);
+      font-family: var(--mono);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .step b{display:block; margin-bottom:4px}
+    .step p{margin:0; color:var(--muted); font-size:12px; line-height:1.4}
+    .mobileToggle{
+      display:none;
+    }
+    @media (max-width: 960px){
+      body{overflow:auto}
+      .app{grid-template-columns: 1fr; height:auto; min-height:100%}
+      .sidebar{position:sticky; top:0; z-index:20}
+      .mobileToggle{display:inline-flex}
+      .grid{grid-template-columns: 1fr}
+      .kpis{grid-template-columns: 1fr}
+      .twoCol{grid-template-columns: 1fr}
+    }
+    .srOnly{
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="FinSight Interactive Storyboard">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>FinSight</h1>
+          <p>Clickable storyboard prototype</p>
+        </div>
+      </div>
+
+      <div class="nav" id="nav">
+        <button data-screen="welcome" class="active"><span>🏁</span><span>Welcome</span><span class="pill">S1</span></button>
+        <button data-screen="onboarding"><span>👤</span><span>Sign in & Setup</span><span class="pill">S2</span></button>
+        <button data-screen="import"><span>📥</span><span>Import Data</span><span class="pill">S3</span></button>
+        <button data-screen="dashboard"><span>📊</span><span>Dashboard</span><span class="pill">S4</span></button>
+        <button data-screen="transactions"><span>🧾</span><span>Transactions</span><span class="pill">S5</span></button>
+        <button data-screen="budget"><span>🧮</span><span>Budget</span><span class="pill">S6</span></button>
+        <button data-screen="insights"><span>🧠</span><span>Insights & Alerts</span><span class="pill">S7</span></button>
+        <button data-screen="goals"><span>🎯</span><span>Goals</span><span class="pill">S8</span></button>
+        <button data-screen="privacy"><span>🔒</span><span>Privacy Controls</span><span class="pill">S9</span></button>
+      </div>
+
+      <div class="hint">
+        <b>How to use</b><br/>
+        Click the steps (S1–S9) to navigate. Buttons inside screens open modals, toggle states, and simulate a user journey.<br/><br/>
+        <span class="mono">No backend, no API calls.</span> Fake data only.
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="crumbs" aria-label="Breadcrumb">
+          <span class="mono">FinSight</span>
+          <span class="dot">•</span>
+          <span id="crumb">Welcome</span>
+          <span class="dot">•</span>
+          <span class="mono" id="storyMode">Story Mode: Off</span>
+        </div>
+        <div class="actions">
+          <button class="btn ghost mobileToggle" id="toggleSidebar" aria-controls="sidebar" aria-expanded="true">☰ Menu</button>
+          <div class="chip" title="Local-first mode (prototype)">
+            <span class="lock" aria-hidden="true"></span>
+            <span>Local-only (mock)</span>
+          </div>
+          <button class="btn" id="toggleStory">Start Story Mode</button>
+          <button class="btn primary" id="quickDemo">Quick Demo</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- S1 -->
+        <section class="screen active" id="welcome">
+          <div class="hero">
+            <h2>Private financial intelligence for students</h2>
+            <p>
+              FinSight helps students understand spending, build budgets, and catch risky patterns,
+              while keeping data under the user's control. This is a storyboard prototype focused on user experience.
+            </p>
+            <div class="row">
+              <button class="btn primary" data-go="onboarding">Get started</button>
+              <button class="btn" id="openDay">A day in the life</button>
+              <button class="btn" id="openStoryboard">Storyboard map</button>
+            </div>
+            <div class="kpis" aria-label="High-level value points">
+              <div class="kpi">
+                <div class="label">Student need</div>
+                <div class="value">Clarity</div>
+                <div class="sub">Know where money goes</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Student need</div>
+                <div class="value">Control</div>
+                <div class="sub">Privacy-first choices</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Student need</div>
+                <div class="value">Confidence</div>
+                <div class="sub">Smart alerts & guidance</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:14px"></div>
+
+          <div class="grid">
+            <div class="card">
+              <h2>Primary use cases in this prototype</h2>
+              <p>Explore a realistic student journey using click-through screens and fake data.</p>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge"></span><div><b>Set up FinSight</b><div class="small">Create a local profile and privacy settings</div></div><span class="tag">S2</span></div>
+                <div class="item"><span class="badge"></span><div><b>Import transactions</b><div class="small">Upload a CSV export or paste transactions</div></div><span class="tag">S3</span></div>
+                <div class="item"><span class="badge"></span><div><b>Review dashboard</b><div class="small">See totals, trends, and quick insights</div></div><span class="tag">S4</span></div>
+                <div class="item"><span class="badge"></span><div><b>Manage budgets</b><div class="small">Set monthly limits by category</div></div><span class="tag">S6</span></div>
+                <div class="item"><span class="badge"></span><div><b>Get alerts</b><div class="small">Detect spikes, subscriptions, and anomalies</div></div><span class="tag">S7</span></div>
+              </div>
+              <div class="footerRow">
+                <button class="btn" data-go="dashboard">Skip to dashboard</button>
+                <button class="btn primary" data-go="onboarding">Continue →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Prototype notes</h2>
+              <p>This is an interactive storyboard only. It shows layouts, navigation, and UX decisions.</p>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge ok"></span><div><b>Clickable navigation</b><div class="small">Buttons + transitions</div></div></div>
+                <div class="item"><span class="badge ok"></span><div><b>Fake data</b><div class="small">Realistic student expenses</div></div></div>
+                <div class="item"><span class="badge warn"></span><div><b>No backend</b><div class="small">No database, no bank API calls</div></div></div>
+                <div class="item"><span class="badge warn"></span><div><b>No real encryption</b><div class="small">Security is represented as UX concepts</div></div></div>
+              </div>
+              <div class="footerRow">
+                <button class="btn" id="showToastWelcome">Show sample toast</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S2 -->
+        <section class="screen" id="onboarding">
+          <div class="grid">
+            <div class="card">
+              <h2>Sign in & local setup</h2>
+              <p>Create a local profile. In this prototype, nothing is uploaded.</p>
+
+              <div class="form" aria-label="Onboarding form">
+                <div class="row2">
+                  <div>
+                    <label for="name">Name</label>
+                    <input id="name" placeholder="Alex Student" value="Alex Student"/>
+                  </div>
+                  <div>
+                    <label for="school">School year</label>
+                    <select id="school">
+                      <option>Freshman</option>
+                      <option selected>Sophomore</option>
+                      <option>Junior</option>
+                      <option>Senior</option>
+                      <option>Graduate</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div>
+                    <label for="monthly">Monthly budget (target)</label>
+                    <input id="monthly" type="number" value="1600"/>
+                  </div>
+                  <div>
+                    <label for="risk">Alert sensitivity</label>
+                    <select id="risk">
+                      <option>Low (fewer alerts)</option>
+                      <option selected>Medium</option>
+                      <option>High (more alerts)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div>
+                    <label for="auth">Local authentication</label>
+                    <select id="auth">
+                      <option selected>Device PIN</option>
+                      <option>Biometrics (mock)</option>
+                      <option>Password</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="store">Storage mode</label>
+                    <select id="store">
+                      <option selected>Local-only</option>
+                      <option>Local + encrypted backup (mock)</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label for="goal">Primary goal</label>
+                  <select id="goal">
+                    <option selected>Spend less on eating out</option>
+                    <option>Build an emergency fund</option>
+                    <option>Reduce subscriptions</option>
+                    <option>Pay down credit card</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="footerRow">
+                <button class="btn" data-go="welcome">Back</button>
+                <button class="btn" id="previewProfile">Preview profile card</button>
+                <button class="btn primary" data-go="import">Continue →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Why this screen exists</h2>
+              <p>
+                Students want insights, but they also want control. This step makes privacy a first-class UX decision.
+              </p>
+              <div class="steps">
+                <div class="step">
+                  <div class="n">1</div>
+                  <b>Set preferences</b>
+                  <p>Choose alert sensitivity and goals.</p>
+                </div>
+                <div class="step">
+                  <div class="n">2</div>
+                  <b>Choose privacy</b>
+                  <p>Local-only by default.</p>
+                </div>
+                <div class="step">
+                  <div class="n">3</div>
+                  <b>Start analysis</b>
+                  <p>Move to import (CSV paste/upload).</p>
+                </div>
+              </div>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge ok"></span><div><b>Local profile created</b><div class="small" id="profileStatus">Not yet</div></div></div>
+                <div class="item"><span class="badge"></span><div><b>Next</b><div class="small">Import data to generate insights</div></div><span class="tag">S3</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S3 -->
+        <section class="screen" id="import">
+          <div class="grid">
+            <div class="card">
+              <h2>Import transactions (mock)</h2>
+              <p>Upload a CSV export or paste text. This prototype simulates import and categorization.</p>
+
+              <div class="twoCol" style="margin-top:12px">
+                <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+                  <h2 style="font-size:14px">Option A: Paste transactions</h2>
+                  <p class="small">Try the sample text and click “Simulate import”.</p>
+                  <textarea id="pasteBox" class="mono">2026-02-01,Trader Joe's,-42.18,Groceries
+2026-02-02,Campus Cafe,-9.75,Eating Out
+2026-02-03,Rent,-850,Housing
+2026-02-04,Spotify,-11.99,Subscriptions
+2026-02-05,Uber,-18.40,Transport
+2026-02-06,Bookstore,-63.25,School
+</textarea>
+                  <div class="footerRow">
+                    <button class="btn" id="clearPaste">Clear</button>
+                    <button class="btn primary" id="simulateImport">Simulate import</button>
+                  </div>
+                </div>
+                <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+                  <h2 style="font-size:14px">Option B: Upload CSV</h2>
+                  <p class="small">File stays local. No upload occurs.</p>
+                  <input type="file" id="csvFile" accept=".csv"/>
+                  <div class="small" id="fileNote" style="margin-top:8px">No file selected.</div>
+                  <div class="footerRow">
+                    <button class="btn" id="simulateUpload">Simulate upload</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footerRow">
+                <button class="btn" data-go="onboarding">Back</button>
+                <button class="btn" id="viewImported" disabled>View imported preview</button>
+                <button class="btn primary" data-go="dashboard" id="toDash" disabled>Continue →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Import status</h2>
+              <p>We show clear feedback so users trust the process.</p>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge warn"></span><div><b>Imported records</b><div class="small" id="importCount">0</div></div></div>
+                <div class="item"><span class="badge warn"></span><div><b>Categories detected</b><div class="small" id="importCats">0</div></div></div>
+                <div class="item"><span class="badge warn"></span><div><b>Potential subscriptions</b><div class="small" id="importSubs">0</div></div></div>
+              </div>
+              <div class="hint" style="margin-top:12px">
+                In a real system, this step would parse transactions and detect duplicates.
+                Here, we simulate that behavior to support the storyboard.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S4 -->
+        <section class="screen" id="dashboard">
+          <div class="hero">
+            <h2>Dashboard</h2>
+            <p>Quick overview for a student: spending, remaining budget, and notable signals.</p>
+            <div class="kpis">
+              <div class="kpi">
+                <div class="label">This month spent</div>
+                <div class="value" id="kpiSpent">$0</div>
+                <div class="sub" id="kpiSpentSub">Import data to begin</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Budget remaining</div>
+                <div class="value" id="kpiRemain">$0</div>
+                <div class="sub">Target from setup</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Alerts</div>
+                <div class="value" id="kpiAlerts">0</div>
+                <div class="sub">Spikes, subs, unusual</div>
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn" data-go="transactions">Open transactions</button>
+              <button class="btn" data-go="budget">Adjust budget</button>
+              <button class="btn primary" data-go="insights">View insights</button>
+            </div>
+          </div>
+
+          <div style="height:14px"></div>
+
+          <div class="grid">
+            <div class="card">
+              <h2>Category snapshot</h2>
+              <p>Simple summary for students, without overwhelming detail.</p>
+              <div class="list" id="catList" style="margin-top:12px"></div>
+            </div>
+
+            <div class="card">
+              <h2>Next best actions</h2>
+              <p>Suggestions are actionable and easy to understand.</p>
+              <div class="list" style="margin-top:12px" id="nbaList"></div>
+              <div class="footerRow">
+                <button class="btn" id="refreshActions">Refresh suggestions</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S5 -->
+        <section class="screen" id="transactions">
+          <div class="grid">
+            <div class="card">
+              <h2>Transactions</h2>
+              <p>Students can review, search, and correct categories.</p>
+
+              <div class="row2" style="margin-top:12px">
+                <div>
+                  <label for="q">Search</label>
+                  <input id="q" placeholder="Try: rent, cafe, uber"/>
+                </div>
+                <div>
+                  <label for="filter">Category filter</label>
+                  <select id="filter">
+                    <option value="all" selected>All</option>
+                    <option>Groceries</option>
+                    <option>Eating Out</option>
+                    <option>Housing</option>
+                    <option>Subscriptions</option>
+                    <option>Transport</option>
+                    <option>School</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="list" id="txList" style="margin-top:12px"></div>
+
+              <div class="footerRow">
+                <button class="btn" data-go="dashboard">Back</button>
+                <button class="btn" id="openEdit" disabled>Edit selected</button>
+                <button class="btn primary" data-go="budget">Go to budget →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Why this screen exists</h2>
+              <p>Students need transparency. They also want quick corrections when categorization is wrong.</p>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge ok"></span><div><b>Control</b><div class="small">User overrides automatic categories</div></div></div>
+                <div class="item"><span class="badge ok"></span><div><b>Trust</b><div class="small">Every insight links to underlying transactions</div></div></div>
+                <div class="item"><span class="badge warn"></span><div><b>Focus</b><div class="small">Search and filters reduce cognitive load</div></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S6 -->
+        <section class="screen" id="budget">
+          <div class="grid">
+            <div class="card">
+              <h2>Monthly budget</h2>
+              <p>Students set realistic limits per category and see progress.</p>
+
+              <div class="twoCol" style="margin-top:12px">
+                <div>
+                  <label>Monthly total target</label>
+                  <input id="budgetTotal" type="number" value="1600"/>
+                  <div class="small">Tip: start with rent + essentials, then distribute the rest.</div>
+
+                  <div style="height:10px"></div>
+                  <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+                    <h2 style="font-size:14px">Category budgets</h2>
+                    <div class="form">
+                      <div class="row2">
+                        <div><label>Groceries</label><input type="number" id="bGro" value="260"/></div>
+                        <div><label>Eating Out</label><input type="number" id="bEat" value="160"/></div>
+                      </div>
+                      <div class="row2">
+                        <div><label>Transport</label><input type="number" id="bTr" value="120"/></div>
+                        <div><label>Subscriptions</label><input type="number" id="bSub" value="40"/></div>
+                      </div>
+                      <div class="row2">
+                        <div><label>School</label><input type="number" id="bSch" value="120"/></div>
+                        <div><label>Other</label><input type="number" id="bOth" value="50"/></div>
+                      </div>
+                    </div>
+                    <div class="footerRow">
+                      <button class="btn" id="autoBudget">Auto-fill</button>
+                      <button class="btn primary" id="saveBudget">Save budget</button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+                    <h2 style="font-size:14px">Budget progress (mock)</h2>
+                    <p class="small">Updates based on imported spending.</p>
+                    <div class="list" id="budgetProgress" style="margin-top:12px"></div>
+                  </div>
+
+                  <div style="height:12px"></div>
+
+                  <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+                    <h2 style="font-size:14px">Smart nudge</h2>
+                    <p class="small" id="nudgeText">Import data to receive budget nudges.</p>
+                    <div class="footerRow">
+                      <button class="btn" id="newNudge">Generate nudge</button>
+                      <button class="btn primary" data-go="insights">Continue →</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footerRow">
+                <button class="btn" data-go="transactions">Back</button>
+                <button class="btn primary" data-go="insights">View alerts →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Why this screen exists</h2>
+              <p>Budgets must be fast to set up, easy to adjust, and easy to understand.</p>
+              <div class="steps">
+                <div class="step">
+                  <div class="n">1</div>
+                  <b>Set limits</b>
+                  <p>Per category, monthly.</p>
+                </div>
+                <div class="step">
+                  <div class="n">2</div>
+                  <b>Monitor</b>
+                  <p>Progress and remaining amount.</p>
+                </div>
+                <div class="step">
+                  <div class="n">3</div>
+                  <b>Act</b>
+                  <p>Take nudges and adjust behavior.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S7 -->
+        <section class="screen" id="insights">
+          <div class="grid">
+            <div class="card">
+              <h2>Insights & alerts</h2>
+              <p>Actionable, student-friendly signals. Each insight links back to transactions.</p>
+
+              <div class="list" id="alertList" style="margin-top:12px"></div>
+
+              <div class="footerRow">
+                <button class="btn" data-go="budget">Back</button>
+                <button class="btn" id="genAlert">Generate new insight</button>
+                <button class="btn primary" data-go="goals">Continue →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Explainability</h2>
+              <p>Users can inspect what caused an insight without needing technical knowledge.</p>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge ok"></span><div><b>Clear language</b><div class="small">No jargon, simple actions</div></div></div>
+                <div class="item"><span class="badge"></span><div><b>Evidence</b><div class="small">Show the transactions behind the alert</div></div></div>
+                <div class="item"><span class="badge warn"></span><div><b>Control</b><div class="small">Users can tune sensitivity and disable alerts</div></div></div>
+              </div>
+              <div class="footerRow">
+                <button class="btn" id="openExplain">Open example explanation</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S8 -->
+        <section class="screen" id="goals">
+          <div class="grid">
+            <div class="card">
+              <h2>Goals</h2>
+              <p>Students set goals and track progress with simple milestones.</p>
+
+              <div class="twoCol" style="margin-top:12px">
+                <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+                  <h2 style="font-size:14px">Create a goal</h2>
+                  <div class="form">
+                    <div>
+                      <label>Goal type</label>
+                      <select id="goalType">
+                        <option selected>Emergency fund</option>
+                        <option>Reduce eating out</option>
+                        <option>Pay down credit card</option>
+                        <option>Save for spring break</option>
+                      </select>
+                    </div>
+                    <div class="row2">
+                      <div>
+                        <label>Target amount ($)</label>
+                        <input id="goalAmt" type="number" value="500"/>
+                      </div>
+                      <div>
+                        <label>Deadline</label>
+                        <input id="goalDate" type="date" value="2026-05-15"/>
+                      </div>
+                    </div>
+                    <button class="btn primary" id="addGoal">Add goal</button>
+                  </div>
+                </div>
+
+                <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+                  <h2 style="font-size:14px">Goal list</h2>
+                  <div class="list" id="goalList" style="margin-top:12px"></div>
+                </div>
+              </div>
+
+              <div class="footerRow">
+                <button class="btn" data-go="insights">Back</button>
+                <button class="btn primary" data-go="privacy">Finish →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Why this screen exists</h2>
+              <p>Goals convert insights into motivation. Students see progress in small steps.</p>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge ok"></span><div><b>Motivation</b><div class="small">Visual progress encourages consistency</div></div></div>
+                <div class="item"><span class="badge"></span><div><b>Planning</b><div class="small">Targets + dates support real decisions</div></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S9 -->
+        <section class="screen" id="privacy">
+          <div class="grid">
+            <div class="card">
+              <h2>Privacy controls</h2>
+              <p>Users can confirm what is stored, what is shared, and what can be deleted.</p>
+
+              <div class="list" style="margin-top:12px">
+                <div class="item">
+                  <span class="badge ok"></span>
+                  <div>
+                    <b>Data storage</b>
+                    <div class="small" id="privacyStore">Local-only</div>
+                  </div>
+                  <span class="tag">Default</span>
+                </div>
+                <div class="item">
+                  <span class="badge ok"></span>
+                  <div>
+                    <b>Sharing</b>
+                    <div class="small">No third-party sharing in this prototype</div>
+                  </div>
+                  <span class="tag">Off</span>
+                </div>
+                <div class="item">
+                  <span class="badge warn"></span>
+                  <div>
+                    <b>Export report (optional)</b>
+                    <div class="small">Generate a local PDF summary (mock button)</div>
+                  </div>
+                  <button class="btn" id="exportMock">Export (mock)</button>
+                </div>
+                <div class="item">
+                  <span class="badge bad"></span>
+                  <div>
+                    <b>Delete data</b>
+                    <div class="small">Clears imported transactions and resets insights (prototype only)</div>
+                  </div>
+                  <button class="btn" id="deleteAll">Delete</button>
+                </div>
+              </div>
+
+              <div class="footerRow">
+                <button class="btn" data-go="goals">Back</button>
+                <button class="btn primary" id="finish">Finish storyboard</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Storyboard checklist</h2>
+              <p>What the instructor expects for the PoC: navigation, use cases, and UX clarity.</p>
+              <div class="list" style="margin-top:12px">
+                <div class="item"><span class="badge ok"></span><div><b>Screen-by-screen flow</b><div class="small">S1 through S9</div></div></div>
+                <div class="item"><span class="badge ok"></span><div><b>Clickable interactions</b><div class="small">Buttons, modals, toggles</div></div></div>
+                <div class="item"><span class="badge ok"></span><div><b>Use cases shown</b><div class="small">Import, categorize, budget, alert, goals</div></div></div>
+                <div class="item"><span class="badge ok"></span><div><b>No backend</b><div class="small">Fake data only</div></div></div>
+              </div>
+              <div class="hint" style="margin-top:12px">
+                Tip: Take screenshots of each screen after you finish the flow.
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="title" id="toastTitle">Saved</div>
+    <div class="msg" id="toastMsg">Your changes were applied (mock).</div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modalBackdrop" id="modalBack" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <header>
+        <div>
+          <h3 id="modalTitle">Modal title</h3>
+          <p id="modalSub">Modal subtitle</p>
+        </div>
+        <button class="closeX" id="closeModal" aria-label="Close">✕</button>
+      </header>
+      <div id="modalBody"></div>
+      <div class="footerRow" id="modalFooter"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // -----------------------------
+  // Simple state (fake data)
+  // -----------------------------
+  const state = {
+    storyMode: false,
+    profile: { name: "Alex Student", year: "Sophomore", monthlyTarget: 1600, sensitivity:"Medium", storage:"Local-only", goal:"Spend less on eating out" },
+    imported: false,
+    tx: [],
+    selectedTxId: null,
+    budgets: { total: 1600, Groceries:260, "Eating Out":160, Transport:120, Subscriptions:40, School:120, Other:50 },
+    alerts: [],
+    goals: [{ type:"Emergency fund", amount:500, deadline:"2026-05-15", saved:120 }],
+  };
+
+  const screens = ["welcome","onboarding","import","dashboard","transactions","budget","insights","goals","privacy"];
+
+  // -----------------------------
+  // Utilities
+  // -----------------------------
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  function money(n){
+    const v = Number(n || 0);
+    return v.toLocaleString(undefined,{style:"currency", currency:"USD"});
+  }
+
+  function showToast(title, msg){
+    $("#toastTitle").textContent = title;
+    $("#toastMsg").textContent = msg;
+    const t = $("#toast");
+    t.classList.add("show");
+    setTimeout(()=> t.classList.remove("show"), 2200);
+  }
+
+  function openModal({title, sub, bodyHTML, footerButtons=[]}){
+    $("#modalTitle").textContent = title;
+    $("#modalSub").textContent = sub || "";
+    $("#modalBody").innerHTML = bodyHTML || "";
+    const footer = $("#modalFooter");
+    footer.innerHTML = "";
+    footerButtons.forEach(btn => footer.appendChild(btn));
+    $("#modalBack").classList.add("show");
+  }
+  function closeModal(){
+    $("#modalBack").classList.remove("show");
+  }
+
+  function navTo(id){
+    if(!screens.includes(id)) return;
+    $$(".screen").forEach(s => s.classList.remove("active"));
+    $("#" + id).classList.add("active");
+
+    $$("#nav button").forEach(b => b.classList.toggle("active", b.dataset.screen === id));
+    $("#crumb").textContent = screenLabel(id);
+    // if on mobile, auto-hide menu after selection
+    if(window.matchMedia("(max-width: 960px)").matches){
+      $("#sidebar").style.display = "none";
+      $("#toggleSidebar").setAttribute("aria-expanded","false");
+    }
+    renderAll();
+  }
+
+  function screenLabel(id){
+    const map = {
+      welcome: "Welcome",
+      onboarding: "Sign in & Setup",
+      import: "Import Data",
+      dashboard: "Dashboard",
+      transactions: "Transactions",
+      budget: "Budget",
+      insights: "Insights & Alerts",
+      goals: "Goals",
+      privacy: "Privacy Controls"
+    };
+    return map[id] || id;
+  }
+
+  // -----------------------------
+  // Fake logic
+  // -----------------------------
+  function parsePaste(text){
+    const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    const out = [];
+    for(const line of lines){
+      const parts = line.split(",").map(p => p.trim());
+      if(parts.length < 3) continue;
+      const [date, merchant, amountRaw, catRaw] = parts;
+      const amount = Number(amountRaw);
+      const category = catRaw || inferCategory(merchant);
+      out.push({ id: cryptoRandomId(), date, merchant, amount, category });
+    }
+    return out;
+  }
+
+  function inferCategory(merchant){
+    const m = merchant.toLowerCase();
+    if(m.includes("rent")) return "Housing";
+    if(m.includes("spotify") || m.includes("netflix")) return "Subscriptions";
+    if(m.includes("uber") || m.includes("lyft")) return "Transport";
+    if(m.includes("trader") || m.includes("grocery")) return "Groceries";
+    if(m.includes("cafe") || m.includes("restaurant")) return "Eating Out";
+    if(m.includes("book") || m.includes("campus")) return "School";
+    return "Other";
+  }
+
+  function cryptoRandomId(){
+    // simple non-secure id (prototype only)
+    return Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2);
+  }
+
+  function computeSpent(){
+    return state.tx.reduce((sum,t) => sum + (t.amount < 0 ? Math.abs(t.amount) : 0), 0);
+  }
+
+  function computeByCategory(){
+    const map = {};
+    for(const t of state.tx){
+      if(t.amount >= 0) continue;
+      const k = t.category || "Other";
+      map[k] = (map[k] || 0) + Math.abs(t.amount);
+    }
+    return map;
+  }
+
+  function buildDefaultAlerts(){
+    const byCat = computeByCategory();
+    const alerts = [];
+    if((byCat["Eating Out"] || 0) > 120){
+      alerts.push({
+        type:"warn",
+        title:"Eating out is trending high",
+        desc:"You are above your usual pace this month. Consider setting a cap or cooking twice this week.",
+        evidence:["Campus Cafe", "Restaurant"]
+      });
+    }
+    const subs = state.tx.filter(t => (t.category==="Subscriptions") && t.amount < 0);
+    if(subs.length){
+      alerts.push({
+        type:"info",
+        title:"Subscription detected",
+        desc:"You have at least one recurring subscription. Review if you still use it.",
+        evidence: subs.map(s=>s.merchant).slice(0,3)
+      });
+    }
+    const ubers = state.tx.filter(t => t.merchant.toLowerCase().includes("uber") && t.amount < 0);
+    if(ubers.length && Math.abs(ubers[0].amount) > 15){
+      alerts.push({
+        type:"warn",
+        title:"Transport spike",
+        desc:"One ride looks higher than typical. Check if surge pricing happened.",
+        evidence:[ubers[0].merchant]
+      });
+    }
+    // Always have at least one
+    if(!alerts.length){
+      alerts.push({
+        type:"info",
+        title:"Nice start",
+        desc:"Import more transactions to unlock stronger insights and budgeting suggestions.",
+        evidence:[]
+      });
+    }
+    state.alerts = alerts;
+  }
+
+  function randomAction(){
+    const options = [
+      "Set a weekly limit for eating out (ex: $40).",
+      "Move one subscription to student pricing if available.",
+      "Plan groceries for 3 meals and reduce last-minute food orders.",
+      "Turn on high sensitivity alerts during finals week.",
+      "Create an emergency fund goal (even $10 per week)."
+    ];
+    return options[Math.floor(Math.random()*options.length)];
+  }
+
+  function buildCategoryList(){
+    const byCat = computeByCategory();
+    const cats = Object.keys(byCat);
+    const container = $("#catList");
+    container.innerHTML = "";
+    if(!state.imported){
+      container.innerHTML = `<div class="item"><span class="badge warn"></span><div><b>No data yet</b><div class="small">Import transactions to see category totals.</div></div></div>`;
+      return;
+    }
+    cats.sort((a,b)=> byCat[b]-byCat[a]);
+    cats.slice(0,6).forEach(cat=>{
+      const spent = byCat[cat];
+      const b = state.budgets[cat] ?? 0;
+      const status = b ? (spent > b ? "bad" : spent > b*0.85 ? "warn" : "ok") : "info";
+      const badgeClass = status==="bad" ? "badge bad" : status==="warn" ? "badge warn" : status==="ok" ? "badge ok" : "badge";
+      const note = b ? `${money(spent)} of ${money(b)}` : `${money(spent)} spent`;
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `<span class="${badgeClass}"></span>
+                      <div><b>${cat}</b><div class="small">${note}</div></div>
+                      <span class="tag">${b ? (spent > b ? "Over" : "OK") : "Track"}</span>`;
+      container.appendChild(el);
+    });
+  }
+
+  function buildNextActions(){
+    const box = $("#nbaList");
+    box.innerHTML = "";
+    const actions = [];
+    if(!state.imported){
+      actions.push("Import a CSV so FinSight can summarize your spending.");
+      actions.push("Set your monthly target to match your student budget.");
+      actions.push("Pick one goal: emergency fund or fewer subscriptions.");
+    } else {
+      actions.push(randomAction());
+      actions.push(randomAction());
+      actions.push(randomAction());
+    }
+    actions.forEach(a=>{
+      const el = document.createElement("div");
+      el.className="item";
+      el.innerHTML = `<span class="badge"></span><div><b>Suggestion</b><div class="small">${a}</div></div>`;
+      box.appendChild(el);
+    });
+  }
+
+  function buildTxList(){
+    const q = ($("#q")?.value || "").toLowerCase();
+    const f = ($("#filter")?.value || "all");
+    const list = $("#txList");
+    if(!list) return;
+    list.innerHTML = "";
+    if(!state.imported){
+      list.innerHTML = `<div class="item"><span class="badge warn"></span><div><b>No transactions</b><div class="small">Import transactions first.</div></div></div>`;
+      $("#openEdit").disabled = true;
+      return;
+    }
+    const rows = state.tx
+      .filter(t => t.amount < 0)
+      .filter(t => (f==="all" ? true : t.category===f))
+      .filter(t => (!q ? true : (t.merchant.toLowerCase().includes(q) || t.category.toLowerCase().includes(q))))
+      .slice(0,14);
+
+    rows.forEach(t=>{
+      const el = document.createElement("div");
+      el.className = "item";
+      const selected = state.selectedTxId === t.id;
+      el.style.borderColor = selected ? "rgba(124,92,255,.6)" : "";
+      el.style.background = selected ? "rgba(124,92,255,.10)" : "";
+      el.innerHTML = `<span class="badge"></span>
+                      <div>
+                        <b>${t.merchant}</b>
+                        <div class="small">${t.date} • <span class="mono">${t.category}</span></div>
+                      </div>
+                      <span class="tag">${money(Math.abs(t.amount))}</span>`;
+      el.addEventListener("click", ()=>{
+        state.selectedTxId = t.id;
+        $("#openEdit").disabled = false;
+        buildTxList();
+      });
+      list.appendChild(el);
+    });
+    if(!rows.length){
+      list.innerHTML = `<div class="item"><span class="badge warn"></span><div><b>No matches</b><div class="small">Try a different search or filter.</div></div></div>`;
+      $("#openEdit").disabled = true;
+    }
+  }
+
+  function buildBudgetProgress(){
+    const box = $("#budgetProgress");
+    if(!box) return;
+    box.innerHTML = "";
+    if(!state.imported){
+      box.innerHTML = `<div class="item"><span class="badge warn"></span><div><b>No spending data</b><div class="small">Import transactions to see progress.</div></div></div>`;
+      return;
+    }
+    const byCat = computeByCategory();
+    const cats = ["Groceries","Eating Out","Transport","Subscriptions","School","Other"];
+    cats.forEach(cat=>{
+      const spent = byCat[cat] || 0;
+      const b = state.budgets[cat] || 0;
+      const ratio = b ? (spent / b) : 0;
+      const status = b ? (ratio >= 1 ? "bad" : ratio >= .85 ? "warn" : "ok") : "info";
+      const badgeClass = status==="bad" ? "badge bad" : status==="warn" ? "badge warn" : status==="ok" ? "badge ok" : "badge";
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `<span class="${badgeClass}"></span>
+                      <div><b>${cat}</b><div class="small">${money(spent)} of ${money(b)}</div></div>
+                      <span class="tag">${b ? Math.round(ratio*100) + "%" : "—"}</span>`;
+      box.appendChild(el);
+    });
+  }
+
+  function buildAlerts(){
+    const box = $("#alertList");
+    if(!box) return;
+    box.innerHTML = "";
+    if(!state.imported){
+      box.innerHTML = `<div class="item"><span class="badge warn"></span><div><b>No insights yet</b><div class="small">Import transactions first.</div></div></div>`;
+      return;
+    }
+    if(!state.alerts.length) buildDefaultAlerts();
+
+    state.alerts.slice(0,6).forEach((a, idx)=>{
+      const badgeClass = a.type==="bad" ? "badge bad" : a.type==="warn" ? "badge warn" : a.type==="ok" ? "badge ok" : "badge";
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `<span class="${badgeClass}"></span>
+                      <div>
+                        <b>${a.title}</b>
+                        <div class="small">${a.desc}</div>
+                      </div>
+                      <button class="btn" data-i="${idx}">Explain</button>`;
+      el.querySelector("button").addEventListener("click", ()=>{
+        openExplainFor(a);
+      });
+      box.appendChild(el);
+    });
+  }
+
+  function openExplainFor(alert){
+    const evidence = (alert.evidence || []).slice(0,6);
+    const body = `
+      <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+        <h2 style="font-size:14px; margin-bottom:8px">What triggered this?</h2>
+        <p class="small">${alert.desc}</p>
+        <div style="height:10px"></div>
+        <div class="list">
+          ${evidence.length ? evidence.map(e=>`
+            <div class="item">
+              <span class="badge"></span>
+              <div><b>Evidence</b><div class="small">${e}</div></div>
+              <span class="tag">Transaction</span>
+            </div>`).join("") :
+            `<div class="item"><span class="badge warn"></span><div><b>No specific evidence</b><div class="small">Add more transaction history for stronger signals.</div></div></div>`
+          }
+        </div>
+      </div>
+    `;
+    const btn1 = document.createElement("button");
+    btn1.className = "btn";
+    btn1.textContent = "Go to transactions";
+    btn1.addEventListener("click", ()=>{ closeModal(); navTo("transactions"); });
+
+    const btn2 = document.createElement("button");
+    btn2.className = "btn primary";
+    btn2.textContent = "Adjust budget";
+    btn2.addEventListener("click", ()=>{ closeModal(); navTo("budget"); });
+
+    openModal({
+      title: "Insight explanation",
+      sub: "Transparent reasoning in student-friendly language",
+      bodyHTML: body,
+      footerButtons: [btn1, btn2]
+    });
+  }
+
+  function buildGoals(){
+    const box = $("#goalList");
+    if(!box) return;
+    box.innerHTML = "";
+    state.goals.forEach((g, idx)=>{
+      const ratio = Math.min(1, (g.saved || 0) / (g.amount || 1));
+      const status = ratio >= .9 ? "ok" : ratio >= .5 ? "warn" : "info";
+      const badgeClass = status==="ok" ? "badge ok" : status==="warn" ? "badge warn" : "badge";
+      const el = document.createElement("div");
+      el.className="item";
+      el.innerHTML = `<span class="${badgeClass}"></span>
+                      <div>
+                        <b>${g.type}</b>
+                        <div class="small">${money(g.saved)} saved of ${money(g.amount)} • due ${g.deadline}</div>
+                      </div>
+                      <button class="btn" data-idx="${idx}">Add $10</button>`;
+      el.querySelector("button").addEventListener("click", ()=>{
+        g.saved = (g.saved || 0) + 10;
+        buildGoals();
+        showToast("Progress saved", "Added $10 to your goal (mock).");
+      });
+      box.appendChild(el);
+    });
+    if(!state.goals.length){
+      box.innerHTML = `<div class="item"><span class="badge warn"></span><div><b>No goals yet</b><div class="small">Create one to stay motivated.</div></div></div>`;
+    }
+  }
+
+  function updateDashboardKPIs(){
+    const spent = state.imported ? computeSpent() : 0;
+    $("#kpiSpent").textContent = money(spent);
+    $("#kpiSpentSub").textContent = state.imported ? "Based on imported transactions" : "Import data to begin";
+    const total = Number(state.profile.monthlyTarget || state.budgets.total || 0);
+    const remain = Math.max(0, total - spent);
+    $("#kpiRemain").textContent = money(remain);
+    $("#kpiAlerts").textContent = state.imported ? String(state.alerts.length || 0) : "0";
+  }
+
+  function renderPrivacy(){
+    $("#privacyStore").textContent = state.profile.storage || "Local-only";
+  }
+
+  function renderAll(){
+    // onboarding echoes
+    $("#profileStatus").textContent = state.profileCreated ? "Created" : "Not yet";
+    // dashboard
+    if($("#kpiSpent")) updateDashboardKPIs();
+    if($("#catList")) buildCategoryList();
+    if($("#nbaList")) buildNextActions();
+    if($("#txList")) buildTxList();
+    if($("#budgetProgress")) buildBudgetProgress();
+    if($("#alertList")) buildAlerts();
+    if($("#goalList")) buildGoals();
+    if($("#privacyStore")) renderPrivacy();
+  }
+
+  // -----------------------------
+  // Event wiring
+  // -----------------------------
+  // sidebar nav
+  $$("#nav button").forEach(b => b.addEventListener("click", ()=> navTo(b.dataset.screen)));
+
+  // internal navigation buttons
+  $$("[data-go]").forEach(btn => btn.addEventListener("click", ()=> navTo(btn.dataset.go)));
+
+  // top actions
+  $("#toggleStory").addEventListener("click", ()=>{
+    state.storyMode = !state.storyMode;
+    $("#storyMode").textContent = "Story Mode: " + (state.storyMode ? "On" : "Off");
+    $("#toggleStory").textContent = state.storyMode ? "Stop Story Mode" : "Start Story Mode";
+    showToast("Story mode", state.storyMode ? "Guided journey enabled." : "Guided journey disabled.");
+  });
+
+  $("#quickDemo").addEventListener("click", ()=>{
+    // simulate: profile created + import + go dashboard
+    state.profileCreated = true;
+    state.profile.name = $("#name")?.value || state.profile.name;
+    state.profile.monthlyTarget = Number($("#monthly")?.value || state.profile.monthlyTarget);
+    state.profile.storage = $("#store")?.value || state.profile.storage;
+    // import from paste
+    const tx = parsePaste($("#pasteBox").value);
+    state.tx = tx;
+    state.imported = true;
+    buildDefaultAlerts();
+    $("#importCount").textContent = String(state.tx.length);
+    $("#importCats").textContent = String(new Set(state.tx.map(t=>t.category)).size);
+    $("#importSubs").textContent = String(state.tx.filter(t=>t.category==="Subscriptions").length);
+    $("#viewImported").disabled = false;
+    $("#toDash").disabled = false;
+    showToast("Quick demo ready", "Profile + sample transactions loaded (mock).");
+    navTo("dashboard");
+  });
+
+  // mobile menu
+  $("#toggleSidebar").addEventListener("click", ()=>{
+    const sb = $("#sidebar");
+    const visible = sb.style.display !== "none";
+    sb.style.display = visible ? "none" : "block";
+    $("#toggleSidebar").setAttribute("aria-expanded", String(!visible));
+  });
+
+  // welcome extras
+  $("#openDay").addEventListener("click", ()=>{
+    openModal({
+      title:"A day in the life (student scenario)",
+      sub:"Why each screen exists",
+      bodyHTML: `
+        <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+          <p class="small">
+            Alex is a sophomore living off-campus. They get paid part-time twice a month.
+            During midterms, spending rises: coffee, delivery, and rideshares. Alex wants clarity,
+            but does not want to give a third party access to bank logins.
+          </p>
+          <div class="steps" style="margin-top:12px">
+            <div class="step"><div class="n">S2</div><b>Setup</b><p>Alex chooses local-only storage and sets a monthly target.</p></div>
+            <div class="step"><div class="n">S3</div><b>Import</b><p>Alex uploads a CSV export and sees categories appear.</p></div>
+            <div class="step"><div class="n">S4</div><b>Dashboard</b><p>Alex checks spending and remaining budget at a glance.</p></div>
+            <div class="step"><div class="n">S5</div><b>Transactions</b><p>Alex fixes a wrong category in one click.</p></div>
+            <div class="step"><div class="n">S6</div><b>Budget</b><p>Alex sets a limit for eating out and subscriptions.</p></div>
+            <div class="step"><div class="n">S7</div><b>Insights</b><p>Alex gets an alert about a spending spike and sees evidence.</p></div>
+          </div>
+        </div>
+      `,
+      footerButtons: [mkBtn("Close", "btn primary", closeModal)]
+    });
+  });
+
+  $("#openStoryboard").addEventListener("click", ()=>{
+    openModal({
+      title:"Storyboard map",
+      sub:"Click any step to navigate",
+      bodyHTML: `
+        <div class="list">
+          ${screens.map((s,i)=>`
+            <div class="item" data-step="${s}" style="cursor:pointer">
+              <span class="badge"></span>
+              <div><b>S${i+1}: ${screenLabel(s)}</b><div class="small">Open this screen</div></div>
+              <span class="tag">Go</span>
+            </div>`).join("")}
+        </div>
+      `,
+      footerButtons: [mkBtn("Close", "btn", closeModal)]
+    });
+    $$("#modalBody [data-step]").forEach(el => {
+      el.addEventListener("click", ()=>{
+        closeModal();
+        navTo(el.dataset.step);
+      });
+    });
+  });
+
+  $("#showToastWelcome").addEventListener("click", ()=> showToast("Saved", "This is a sample notification (mock)."));
+
+  // onboarding actions
+  $("#previewProfile").addEventListener("click", ()=>{
+    state.profile = {
+      name: $("#name").value,
+      year: $("#school").value,
+      monthlyTarget: Number($("#monthly").value || 0),
+      sensitivity: $("#risk").value,
+      storage: $("#store").value,
+      goal: $("#goal").value
+    };
+    const body = `
+      <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+        <h2 style="font-size:14px">Local profile preview</h2>
+        <div class="list" style="margin-top:10px">
+          <div class="item"><span class="badge ok"></span><div><b>Name</b><div class="small">${escapeHtml(state.profile.name)}</div></div></div>
+          <div class="item"><span class="badge"></span><div><b>Year</b><div class="small">${escapeHtml(state.profile.year)}</div></div></div>
+          <div class="item"><span class="badge"></span><div><b>Monthly target</b><div class="small">${money(state.profile.monthlyTarget)}</div></div></div>
+          <div class="item"><span class="badge"></span><div><b>Storage</b><div class="small">${escapeHtml(state.profile.storage)}</div></div></div>
+          <div class="item"><span class="badge"></span><div><b>Primary goal</b><div class="small">${escapeHtml(state.profile.goal)}</div></div></div>
+        </div>
+      </div>
+    `;
+    openModal({
+      title:"Profile preview",
+      sub:"This represents what would be saved locally",
+      bodyHTML: body,
+      footerButtons: [
+        mkBtn("Looks good", "btn primary", ()=>{ closeModal(); state.profileCreated = true; $("#profileStatus").textContent="Created"; showToast("Profile saved","Local profile created (mock)."); })
+      ]
+    });
+  });
+
+  // import actions
+  $("#clearPaste").addEventListener("click", ()=> { $("#pasteBox").value=""; showToast("Cleared","Paste area cleared."); });
+  $("#csvFile").addEventListener("change", (e)=>{
+    const f = e.target.files && e.target.files[0];
+    $("#fileNote").textContent = f ? `Selected: ${f.name} (${Math.round(f.size/1024)} KB)` : "No file selected.";
+  });
+
+  function finalizeImport(tx){
+    state.tx = tx;
+    state.imported = true;
+    buildDefaultAlerts();
+    $("#importCount").textContent = String(state.tx.length);
+    $("#importCats").textContent = String(new Set(state.tx.map(t=>t.category)).size);
+    $("#importSubs").textContent = String(state.tx.filter(t=>t.category==="Subscriptions").length);
+    $("#viewImported").disabled = false;
+    $("#toDash").disabled = false;
+  }
+
+  $("#simulateImport").addEventListener("click", ()=>{
+    const text = $("#pasteBox").value;
+    const tx = parsePaste(text);
+    if(!tx.length){
+      showToast("Import failed", "Paste at least one valid line.");
+      return;
+    }
+    finalizeImport(tx);
+    showToast("Import complete", `${tx.length} transactions added (mock).`);
+  });
+
+  $("#simulateUpload").addEventListener("click", ()=>{
+    const f = $("#csvFile").files && $("#csvFile").files[0];
+    if(!f){
+      showToast("No file", "Choose a CSV file first.");
+      return;
+    }
+    // do not read file content; simulate success
+    const tx = parsePaste($("#pasteBox").value);
+    finalizeImport(tx);
+    showToast("Upload simulated", `Loaded sample data while '${f.name}' stays local (mock).`);
+  });
+
+  $("#viewImported").addEventListener("click", ()=>{
+    const preview = state.tx.slice(0,6).map(t => `
+      <div class="item"><span class="badge"></span><div><b>${escapeHtml(t.merchant)}</b><div class="small">${t.date} • ${escapeHtml(t.category)}</div></div><span class="tag">${money(Math.abs(t.amount))}</span></div>
+    `).join("");
+    openModal({
+      title:"Imported preview",
+      sub:"A few rows of imported transactions (mock)",
+      bodyHTML:`<div class="list">${preview}</div>`,
+      footerButtons:[
+        mkBtn("Go to dashboard", "btn primary", ()=>{ closeModal(); navTo("dashboard"); })
+      ]
+    });
+  });
+
+  // dashboard actions
+  $("#refreshActions").addEventListener("click", ()=>{ buildNextActions(); showToast("Updated","Suggestions refreshed (mock)."); });
+
+  // transactions actions
+  $("#q").addEventListener("input", buildTxList);
+  $("#filter").addEventListener("change", buildTxList);
+
+  $("#openEdit").addEventListener("click", ()=>{
+    const tx = state.tx.find(t=>t.id===state.selectedTxId);
+    if(!tx) return;
+    const body = `
+      <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+        <h2 style="font-size:14px">Edit transaction category</h2>
+        <div class="list" style="margin-top:10px">
+          <div class="item"><span class="badge"></span><div><b>Merchant</b><div class="small">${escapeHtml(tx.merchant)}</div></div></div>
+          <div class="item"><span class="badge"></span><div><b>Amount</b><div class="small">${money(Math.abs(tx.amount))}</div></div></div>
+          <div class="item"><span class="badge"></span><div><b>Date</b><div class="small">${tx.date}</div></div></div>
+        </div>
+        <div style="height:10px"></div>
+        <label>Category</label>
+        <select id="editCat">
+          ${["Groceries","Eating Out","Housing","Subscriptions","Transport","School","Other"].map(c=>`<option ${c===tx.category?"selected":""}>${c}</option>`).join("")}
+        </select>
+        <div class="small" style="margin-top:8px">User overrides take priority in this UX flow.</div>
+      </div>
+    `;
+    const saveBtn = mkBtn("Save", "btn primary", ()=>{
+      const newCat = $("#editCat").value;
+      tx.category = newCat;
+      buildDefaultAlerts();
+      buildTxList();
+      closeModal();
+      showToast("Saved", "Category updated (mock).");
+    });
+    openModal({
+      title:"Edit transaction",
+      sub:"Student-friendly correction flow",
+      bodyHTML: body,
+      footerButtons:[mkBtn("Cancel","btn", closeModal), saveBtn]
+    });
+  });
+
+  // budget actions
+  $("#autoBudget").addEventListener("click", ()=>{
+    const total = Number($("#budgetTotal").value || state.budgets.total);
+    // naive split
+    state.budgets.total = total;
+    state.budgets.Groceries = Math.round(total * 0.16);
+    state.budgets["Eating Out"] = Math.round(total * 0.10);
+    state.budgets.Transport = Math.round(total * 0.07);
+    state.budgets.Subscriptions = Math.round(total * 0.03);
+    state.budgets.School = Math.round(total * 0.06);
+    state.budgets.Other = Math.round(total * 0.04);
+    // update inputs
+    $("#bGro").value = state.budgets.Groceries;
+    $("#bEat").value = state.budgets["Eating Out"];
+    $("#bTr").value = state.budgets.Transport;
+    $("#bSub").value = state.budgets.Subscriptions;
+    $("#bSch").value = state.budgets.School;
+    $("#bOth").value = state.budgets.Other;
+    showToast("Auto-filled", "Suggested category budgets (mock).");
+    renderAll();
+  });
+
+  $("#saveBudget").addEventListener("click", ()=>{
+    state.budgets.total = Number($("#budgetTotal").value || state.budgets.total);
+    state.budgets.Groceries = Number($("#bGro").value || 0);
+    state.budgets["Eating Out"] = Number($("#bEat").value || 0);
+    state.budgets.Transport = Number($("#bTr").value || 0);
+    state.budgets.Subscriptions = Number($("#bSub").value || 0);
+    state.budgets.School = Number($("#bSch").value || 0);
+    state.budgets.Other = Number($("#bOth").value || 0);
+    showToast("Saved", "Budget saved (mock).");
+    renderAll();
+  });
+
+  function budgetNudge(){
+    if(!state.imported) return "Import transactions to receive budget nudges.";
+    const byCat = computeByCategory();
+    const eat = byCat["Eating Out"] || 0;
+    const bEat = state.budgets["Eating Out"] || 0;
+    if(bEat && eat > bEat*0.85){
+      return "You are close to your eating out limit. Try one meal prep day this week to stay on track.";
+    }
+    const subs = state.tx.filter(t=>t.category==="Subscriptions" && t.amount<0);
+    if(subs.length > 1){
+      return "You have multiple subscriptions. Consider pausing one for a month and reassess.";
+    }
+    return "Good pace so far. Keep checking the dashboard weekly to avoid end-of-month surprises.";
+  }
+
+  $("#newNudge").addEventListener("click", ()=>{
+    $("#nudgeText").textContent = budgetNudge();
+    showToast("Nudge generated", "A new suggestion is ready (mock).");
+  });
+
+  // insights actions
+  $("#genAlert").addEventListener("click", ()=>{
+    if(!state.imported){
+      showToast("No data", "Import transactions first.");
+      return;
+    }
+    const ideas = [
+      {type:"warn", title:"Delivery spending climbed", desc:"Food delivery is rising this week. Consider a weekly cap.", evidence:["Campus Cafe"]},
+      {type:"info", title:"Low grocery frequency", desc:"Groceries appear less frequent than usual. This can lead to more eating out.", evidence:["Trader Joe's"]},
+      {type:"warn", title:"Large one-time purchase", desc:"A higher-than-usual purchase occurred. Double-check if it was expected.", evidence:["Bookstore"]}
+    ];
+    state.alerts.unshift(ideas[Math.floor(Math.random()*ideas.length)]);
+    showToast("New insight", "Generated a new insight (mock).");
+    renderAll();
+  });
+
+  $("#openExplain").addEventListener("click", ()=>{
+    openExplainFor({ type:"warn", title:"Example insight", desc:"Your spending in Eating Out increased compared to last week.", evidence:["Campus Cafe", "Restaurant"] });
+  });
+
+  // goals actions
+  $("#addGoal").addEventListener("click", ()=>{
+    const g = {
+      type: $("#goalType").value,
+      amount: Number($("#goalAmt").value || 0),
+      deadline: $("#goalDate").value || "2026-05-15",
+      saved: 0
+    };
+    state.goals.unshift(g);
+    showToast("Goal added", "Goal created (mock).");
+    renderAll();
+  });
+
+  // privacy actions
+  $("#exportMock").addEventListener("click", ()=>{
+    showToast("Export started", "A local report would be generated here (mock).");
+  });
+
+  $("#deleteAll").addEventListener("click", ()=>{
+    openModal({
+      title:"Delete all local data?",
+      sub:"This is a prototype reset action",
+      bodyHTML: `
+        <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+          <p class="small">
+            This will remove imported transactions, alerts, and selected items, and reset the dashboard.
+            In a real system, this supports user sovereignty over financial data.
+          </p>
+        </div>
+      `,
+      footerButtons: [
+        mkBtn("Cancel","btn", closeModal),
+        mkBtn("Delete","btn primary", ()=>{
+          state.tx = [];
+          state.imported = false;
+          state.alerts = [];
+          state.selectedTxId = null;
+          $("#importCount").textContent = "0";
+          $("#importCats").textContent = "0";
+          $("#importSubs").textContent = "0";
+          $("#viewImported").disabled = true;
+          $("#toDash").disabled = true;
+          closeModal();
+          showToast("Deleted", "Local data cleared (mock).");
+          navTo("welcome");
+        })
+      ]
+    });
+  });
+
+  $("#finish").addEventListener("click", ()=>{
+    openModal({
+      title:"Storyboard complete",
+      sub:"You can now capture screenshots for submission",
+      bodyHTML: `
+        <div class="card" style="box-shadow:none; background: rgba(0,0,0,.10)">
+          <p class="small">
+            Suggested screenshots: Welcome, Setup, Import, Dashboard, Transactions, Budget, Insights, Goals, Privacy.
+          </p>
+          <div class="list" style="margin-top:12px">
+            ${screens.map((s,i)=>`
+              <div class="item">
+                <span class="badge ok"></span>
+                <div><b>S${i+1}: ${screenLabel(s)}</b><div class="small">Open and screenshot</div></div>
+                <button class="btn" data-jump="${s}">Go</button>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `,
+      footerButtons: [mkBtn("Close","btn primary", closeModal)]
+    });
+    $$("#modalBody [data-jump]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        closeModal();
+        navTo(b.dataset.jump);
+      });
+    });
+  });
+
+  // modal close
+  $("#closeModal").addEventListener("click", closeModal);
+  $("#modalBack").addEventListener("click", (e)=>{ if(e.target.id==="modalBack") closeModal(); });
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeModal(); });
+
+  // helper: create buttons
+  function mkBtn(text, cls, onClick){
+    const b = document.createElement("button");
+    b.className = cls;
+    b.textContent = text;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  // initial
+  $("#storyMode").textContent = "Story Mode: Off";
+  renderAll();
+})();
+</script>
+</body>
+</html>
